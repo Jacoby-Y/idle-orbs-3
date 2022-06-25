@@ -63,7 +63,7 @@
 							<img class="socket" class:transp={socket == ""} class:sel={sel_orb == orb && socket_i == j} src="/src/assets/{socket == "" ? "default" : socket}.svg" alt="{sel_socket}">
 						{/each}
 					</div>
-					{#if i == 0} <p id="scrap-hint">Double Click to Quickly Scrap</p> {/if}
+					{#if i == 1} <p id="scrap-hint">Double Click to Quickly Scrap</p> {/if}
 				</div>
 				{/each}
 				<!-- <div id="buy-card">

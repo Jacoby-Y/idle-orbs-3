@@ -11,7 +11,8 @@ Gh Pages Link: https://jacoby-y.github.io/idle-orbs-3/
 - Auto bounce
 - Render modes
 - Scrap orb and remove it from physics
+- Fix double click scrapping on orbs
 
 
 #### Back Burner
-- Make game mod-able 
+- Prestige and paradigm shift

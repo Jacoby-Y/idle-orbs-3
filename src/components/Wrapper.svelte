@@ -5,7 +5,7 @@
 	import Shop from "./Shop.svelte";
 	import Traits from "./Traits.svelte";
 
-	let nav_i = 1;
+	let nav_i = 0;
 	const nav_list = ["Orbs", "Shop", "Traits", "Prestige", "Settings"];
 	const comp_list = [ Orbs, Shop, Traits ];
 </script>

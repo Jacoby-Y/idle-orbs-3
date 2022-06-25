@@ -1,8 +1,9 @@
 import { get, writable } from "svelte/store";
 import { randRange } from "./lib/funcs.js";
 
-let deci = 0;
+//#region | Cash / Dust / Timer / Tps
 export const dust = writable(0);
+let deci = 0;
 export const cash = writable(0);
 cash.subscribe((v)=>{
 	if (v < 0) { cash.set(0); return; }
@@ -21,12 +22,28 @@ export const tps = 45;
 
 const run_timer = ()=> timer.update(v => (v+1)%tps);
 let timer_interval = setInterval(run_timer, 1000/tps);
+//#endregion
 
+//#region | Canvas
 /** @type {CanvasRenderingContext2D}*/ let _ctx;
 export const ctx = writable(_ctx);
 
 export const size = { w: 1600, h: 900 };
+//#endregion
 
+//#region | Settings
+export const render_mode = writable(0);
+//#endregion
+
+//#region | Orb Stuff
+export const orbs = writable([
+	{ rarity: "common", value: 1, sockets: [] },
+	// { rarity: "uncommon", value: 2, sockets: ["", ""] },
+	// { rarity: "rare", value: 3, sockets: ["", "", "", ] },
+	// { rarity: "epic", value: 4, sockets: ["", "", "", "", ] },
+	// { rarity: "legendary", value: 5, sockets: ["", "", "", "", "", ""] },
+	// { rarity: "magic", value: 6, sockets: ["", "", "", "", ""] },
+]);
 export const auto_bounce = writable({
 	prog: 0,
 	// max: 20,
@@ -37,20 +54,72 @@ export const auto_bounce = writable({
 	speed_cost: 100,
 	size_cost: 100,
 });
-
-export const render_mode = writable(0);
-
 export const collect_radius = writable(100);
+export const addNewOrb = ()=>{
+	let perc = Math.round(Math.random()*100);
+	const [r, obj] = (()=>{
+		for (const k in rarity_key) {
+			if (!Object.hasOwnProperty.call(rarity_key, k)) continue;
+			const v = rarity_key[k];
+			perc -= v.chance;
+			if (perc <= 0) return [k, v];
+		}
+	})()
+	const new_orb = { rarity: "common", value: 1, sockets: [] };
+	new_orb.rarity = r;
+	new_orb.value = obj.get_value();
+	new_orb.sockets = Array.from(Array(obj.get_sockets())).map(()=> "");
 
-export const orbs = writable([
-	{ rarity: "common", value: 1, sockets: [] },
-	// { rarity: "uncommon", value: 2, sockets: ["", ""] },
-	// { rarity: "rare", value: 3, sockets: ["", "", "", ] },
-	// { rarity: "epic", value: 4, sockets: ["", "", "", "", ] },
-	// { rarity: "legendary", value: 5, sockets: ["", "", "", "", "", ""] },
-	// { rarity: "magic", value: 6, sockets: ["", "", "", "", ""] },
-]);
+	orbs.update(v => [ ...v,  new_orb]);
+}
+export const coll_rad = writable(200);
+//#endregion
+
+//#region | Traits
 export const traits = writable([ ]);
+const new_trait = (desc, weight)=>{return {desc, weight} }
+export const trait_key = {
+	helium: new_trait("Orb is lighter.", 15),
+	ice: new_trait("Orb takes less drag", 15),
+	midas: new_trait("Orb value increases by $3.", 5),
+	magnetic: new_trait("Orb is attracted to the collector.", 1),
+};
+const total_trait_weight = Object.keys(trait_key).reduce((p, c)=> p+trait_key[c].weight, 0);
+export const trait_cost = {
+	cash: 50,
+	dust: 10,
+}
+export const addNewTrait = ()=>{
+	const rand = randRange(0, total_trait_weight);
+	let new_t = "midas";
+	Object.keys(trait_key).reduce((p, c)=> {
+		const res = p+trait_key[c].weight;
+		if (rand >= p && rand < res) new_t = c;
+		return res;
+	}, 0);
+	traits.update(v => [...v, new_t]);
+}
+export const calcTrait = {
+	value(orb) {
+		if (!orb) return;
+		return orb.value + orb.sockets.reduce((p,c)=> c == "midas" ? p+1 : p, 0) * 3;
+	},
+	lessDrag(orb) {
+		if (!orb) return;
+		return orb.sockets.reduce((p,c)=> c == "ice" ? p+1 : p, 0);
+	},
+	lessGravity(orb) {
+		if (!orb) return;
+		return orb.sockets.reduce((p,c)=> c == "helium" ? p+1 : p, 0);
+	},
+	magnetic(orb) {
+		if (!orb) return;
+		return orb.sockets.reduce((p,c)=> c == "magnetic" ? p+1 : p, 0);
+	}
+};
+//#endregion
+
+//#region | Rarities
 export const rarity_key = {
 	common: {
 		scrap_value: 5,
@@ -95,76 +164,8 @@ export const rarity_key = {
 		get_sockets: ()=> randRange(1, 6),
 	}
 };
-const new_trait = (desc, weight)=>{return {desc, weight} }
-export const trait_key = {
-	helium: new_trait("Orb is lighter.", 15),
-	ice: new_trait("Orb takes less drag", 15),
-	midas: new_trait("Orb value increases by $3.", 5),
-	magnetic: new_trait("Orb is attracted to the collector.", 1),
-};
-const total_trait_weight = Object.keys(trait_key).reduce((p, c)=> p+trait_key[c].weight, 0);
-export const trait_cost = {
-	cash: 50,
-	dust: 10,
-}
-export const addNewTrait = ()=>{
-	const rand = randRange(0, total_trait_weight);
-	let new_t = "midas";
-	Object.keys(trait_key).reduce((p, c)=> {
-		const res = p+trait_key[c].weight;
-		if (rand >= p && rand < res) new_t = c;
-		return res;
-	}, 0);
-	traits.update(v => [...v, new_t]);
-}
-
-export const addNewOrb = ()=>{
-	let perc = Math.round(Math.random()*100);
-	const [r, obj] = (()=>{
-		for (const k in rarity_key) {
-			if (!Object.hasOwnProperty.call(rarity_key, k)) continue;
-			const v = rarity_key[k];
-			perc -= v.chance;
-			if (perc <= 0) return [k, v];
-		}
-	})()
-	const new_orb = { rarity: "common", value: 1, sockets: [] };
-	new_orb.rarity = r;
-	new_orb.value = obj.get_value();
-	new_orb.sockets = Array.from(Array(obj.get_sockets())).map(()=> "");
-
-	orbs.update(v => [ ...v,  new_orb]);
-}
-export const coll_rad = writable(200);
+//#endregion
 
 window.onbeforeunload = ()=>{
 	clearInterval(timer_interval);
 }
-
-export const calcTrait = {
-	value(orb) {
-		if (!orb) return;
-		return orb.value + orb.sockets.reduce((p,c)=> c == "midas" ? p+1 : p, 0) * 3;
-	},
-	lessDrag(orb) {
-		if (!orb) return;
-		return orb.sockets.reduce((p,c)=> c == "ice" ? p+1 : p, 0);
-	},
-	lessGravity(orb) {
-		if (!orb) return;
-		return orb.sockets.reduce((p,c)=> c == "helium" ? p+1 : p, 0);
-	},
-	magnetic(orb) {
-		if (!orb) return;
-		return orb.sockets.reduce((p,c)=> c == "magnetic" ? p+1 : p, 0);
-	}
-};
-
-
-// const array = [ true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true ];
-// const detectCosmicRay = ()=>{
-// 	while (!array.includes(false)) {}
-// 	console.log("Detected cosmic ray!");
-// }
-
-// detectCosmicRay
