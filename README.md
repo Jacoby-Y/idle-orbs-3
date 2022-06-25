@@ -2,6 +2,7 @@
 
 
 The third installment of the Idle Orbs Series™!
+Gh Pages Link: https://jacoby-y.github.io/idle-orbs-3/
 
 
 #### Front Burner
